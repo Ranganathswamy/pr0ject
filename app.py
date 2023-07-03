@@ -1,69 +1,87 @@
+from flask import Flask, render_template, request, redirect
+import tweepy
 
-from flask import Flask, render_template, request
+# Create Flask app instance
 app = Flask(__name__)
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
+# Twitter API credentials
+consumer_key = 'your_consumer_key'
+consumer_secret = 'your_consumer_secret'
+access_token = 'your_access_token'
+access_token_secret = 'your_access_token_secret'
+
+# Configure Tweepy
+auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+auth.set_access_token(access_token, access_token_secret)
+api = tweepy.API(auth)
+
+
+@app.route('/')
+#@app.route('/login', methods=['GET', 'POST'])
+def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        # Add code to handle the Twitter login with the captured credentials
-        return f'Logged in as {username}'
+
+        # Authenticate user with Twitter credentials
+        try:
+            auth.set_access_token(username, password)
+            api.verify_credentials()
+            return redirect('/dashboard')  # Redirect to the dashboard page after successful login
+        except tweepy.TweepError:
+            error_msg = 'Invalid Twitter credentials. Please try again.'
+            return render_template('login.html', error=error_msg)
+
     return render_template('login.html')
 
 if __name__ == '__main__':
     app.run()
-
+# Selenium code
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.keys import Keys
-firefox_options = Options()
-firefox_options.headless = True
-driver = webdriver.Firefox(options=firefox_options)
- @app.route('/', methods=['GET', 'POST'])
-def index():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
+import time
+import chromedriver_autoinstaller
+chromedriver_autoinstaller.install()
+time.sleep(5)
+# Set up headless browsing options for Chrome
+options = Options()
+options.headless = True
 
-        # Initialize the WebDriver
-        driver = webdriver.Firefox(options=firefox_options)
+# Initialize the WebDriver
+driver = webdriver.Chrome()
+url="http://127.0.0.1:5000"
+# Navigate to the login page
+driver.get(url)
+time.sleep(2)
 
-        # Perform the login using Selenium
-        driver.get('https://www.twitter.com')
-        # Find the username and password fields and populate them
-        username_field = driver.find_element_by_xpath("//*[@id='username']")
-        username_field.send_keys("username")
-        password_field = driver.find_element_by_xpath('//*[@id="password"]')
-        password_field.send_keys("password")
-        # Submit the form
-        password_field.send_keys(Keys.RETURN)
-        submit=driver.find_element_by_xpath("/html/body/form/input[3]")
-        submit.click()
+# Find the username and password fields and fill them in
+username_field = driver.find_element('xpath','//*[@id="username"]')
+password_field = driver.find_element('xpath','//*[@id="password"]')
 
-        # Add code to handle the rest of your application logic
+username_field.send_keys('nagalakshmi')
+password_field.send_keys('nagalakshmi@123')
 
-        # Quit the WebDriver
-        #driver.quit()
+# Submit the form
+login_button = driver.find_element('xpath','/html/body/form/input[3]')
+login_button.click()
 
-        return f'Logged in as {username}'
-
-    return render_template('login.html')
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-driver = webdriver.Firefox()
-driver.get('https://www.twitter.com/search')
-search_field = driver.find_element_by_name('q')
+# Wait for time
+time.sleep(2)
+# searching the content
+search_field = driver.find_element('name','q')
 search_field.send_keys('Python Web Development using Flask')
 search_field.send_keys(Keys.RETURN)
+
+# Close the browser at the end of your script
+driver.quit()
 import time
 time.sleep(3)
-tweets = driver.find_elements_by_xpath("//div[@data-testid='tweet']")
+tweets = driver.find_elements('xpath',"//div[@data-testid='tweet']")
 
 for tweet in tweets:
-    username = tweet.find_element_by_xpath(".//span[contains(@class, 'username')]").text
-    content = tweet.find_element_by_xpath(".//div[contains(@class, 'content')]").text
-    timestamp = tweet.find_element_by_xpath(".//time").get_attribute('datetime')
+    username = tweet.find_element('xpath',".//span[contains(@class, 'username')]").text
+    content = tweet.find_element('xpath',".//div[contains(@class, 'content')]").text
+    timestamp = tweet.find_element('xpath',".//time").get_attribute('datetime')
 
     print(f"Username: {username}")
     print(f"Content: {content}")
@@ -73,9 +91,9 @@ for tweet in tweets:
 import csv
 data = []
 for tweet in tweets:
-    username = tweet.find_element_by_xpath(".//span[contains(@class, 'username')]").text
-    content = tweet.find_element_by_xpath(".//div[contains(@class, 'content')]").text
-    timestamp = tweet.find_element_by_xpath(".//time").get_attribute('datetime')
+    username = tweet.find_element('xpath',".//span[contains(@class, 'username')]").text
+    content = tweet.find_element('xpath',".//div[contains(@class, 'content')]").text
+    timestamp = tweet.find_element('xpath',".//time").get_attribute('datetime')
     data.append([username, content, timestamp])
 csv_file = 'twitter_data.csv'
 with open(csv_file, 'w', newline='', encoding='utf-8') as file:
@@ -164,7 +182,3 @@ def test_login(client):
     response = client.post('/login', data={'username': 'testuser', 'password': 'password'})
     assert response.status_code == 200
     assert b"Logged in as testuser" in response.data
-
-
-
-
